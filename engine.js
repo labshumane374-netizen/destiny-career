@@ -437,7 +437,7 @@ function buildContractNegotiationEvent(state) {
     },
     choices: proposals.map(p => ({
       id: `sign_${p.years}y`,
-      label: `${p.years} an${p.years > 1 ? 's' : ''} — ${p.salaryWeekly}/sem${p.signingBonus ? ` (+prime ${p.signingBonus})` : ''}`,
+      label: `${p.years} an${p.years > 1 ? 's' : ''} — ${p.salaryWeekly.toLocaleString('fr-FR')} €/sem${p.signingBonus ? ` (+prime ${p.signingBonus.toLocaleString('fr-FR')} €)` : ''}`,
       effects: {
         contract: {
           yearsLeft: p.years,
@@ -450,8 +450,10 @@ function buildContractNegotiationEvent(state) {
   };
 }
 
-function buildTransferOfferEvent(offer, club) {
+function buildTransferOfferEvent(offer, club, state) {
   const division = findClubDivisionLabel(club);
+  const estimatedSalary = Math.round(state.player.career.contract.salaryWeekly * (offer.salaryMultiplier || 1.1));
+  const estimatedBonus = Math.round(club.prestige * 80 * (1 + state.player.stats.reputation / 100));
   return {
     id: `evt_dyn_transfer_offer_${club.id}`,
     category: 'transfer',
@@ -460,11 +462,11 @@ function buildTransferOfferEvent(offer, club) {
     actors: {},
     text: {
       title: 'Une offre de transfert',
-      body: `${club.name} (${division}) souhaite te recruter.`,
+      body: `${club.name} (${division}) souhaite te recruter : ${estimatedSalary.toLocaleString('fr-FR')} €/sem, prime à la signature de ${estimatedBonus.toLocaleString('fr-FR')} €.`,
     },
     choices: [
       {
-        id: 'accept', label: `Rejoindre ${club.name}`,
+        id: 'accept', label: `Rejoindre ${club.name} — ${estimatedSalary.toLocaleString('fr-FR')} €/sem`,
         effects: { transfer: { clubId: club.id, salaryMultiplier: offer.salaryMultiplier } },
       },
       { id: 'decline', label: 'Décliner et rester', effects: {} },
@@ -506,7 +508,7 @@ function advanceBeat(state, eventPool) {
   if (state.pendingTransferOffers && state.pendingTransferOffers.length) {
     const offer = state.pendingTransferOffers.shift();
     const club = CLUBS.find(c => c.id === offer.clubId);
-    if (club) return { eventDef: buildTransferOfferEvent(offer, club), resolvedActors: {} };
+    if (club) return { eventDef: buildTransferOfferEvent(offer, club, state), resolvedActors: {} };
   }
 
   if (hasFlagWithin(state, 'loan_offer_ready', 0, {}) && !hasFlagWithin(state, 'loan_offer_resolved', 0, {}) && !state.player.career.loan) {

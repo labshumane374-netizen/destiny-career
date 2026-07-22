@@ -45,6 +45,42 @@ const NATIONALITIES = {
     id: 'us', label: 'États-Unis', countryId: 'us', federation: 'Confédération Atlantique Nord',
     startingBonus: { physique: 3, mental: 1 }, difficultyModifier: 0.85,
   },
+  it: {
+    id: 'it', label: 'Italie', countryId: 'it', federation: 'Fédération Continentale Sud',
+    startingBonus: { tactique: 3, mental: 1 }, difficultyModifier: 1.05,
+  },
+  pt: {
+    id: 'pt', label: 'Portugal', countryId: 'pt', federation: 'Fédération Continentale Sud',
+    startingBonus: { technique: 3, tactique: 1 }, difficultyModifier: 1,
+  },
+  nl: {
+    id: 'nl', label: 'Pays-Bas', countryId: 'nl', federation: 'Fédération Continentale Ouest',
+    startingBonus: { tactique: 3, technique: 1 }, difficultyModifier: 1.05,
+  },
+  be: {
+    id: 'be', label: 'Belgique', countryId: 'be', federation: 'Fédération Continentale Ouest',
+    startingBonus: { technique: 2, physique: 2 }, difficultyModifier: 1,
+  },
+  tr: {
+    id: 'tr', label: 'Turquie', countryId: 'tr', federation: 'Fédération Continentale Centrale',
+    startingBonus: { physique: 3, mental: 2 }, difficultyModifier: 0.95,
+  },
+  co: {
+    id: 'co', label: 'Colombie', countryId: 'co', federation: 'Confédération Australe',
+    startingBonus: { technique: 3, physique: 1 }, difficultyModifier: 0.9,
+  },
+  uy: {
+    id: 'uy', label: 'Uruguay', countryId: 'uy', federation: 'Confédération Australe',
+    startingBonus: { mental: 4 }, difficultyModifier: 0.9,
+  },
+  mx: {
+    id: 'mx', label: 'Mexique', countryId: 'mx', federation: 'Confédération Atlantique Nord',
+    startingBonus: { technique: 2, tactique: 2 }, difficultyModifier: 0.9,
+  },
+  kr: {
+    id: 'kr', label: 'Corée du Sud', countryId: 'kr', federation: 'Fédération Pacifique',
+    startingBonus: { physique: 2, tactique: 2 }, difficultyModifier: 0.9,
+  },
 };
 
 // Pondère le tirage du club de départ selon difficultyModifier : une nationalité
