@@ -331,6 +331,18 @@ body {
 .stat-row-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent-dark), var(--gold)); transition: width 0.4s ease; }
 .stat-row-value { width: 28px; text-align: right; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 .stat-panel-meta { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-faint); }
+.trait-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.trait-chip {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--accent-glow);
+  border: 1px solid var(--accent);
+  color: var(--accent-dark);
+}
+:root[data-theme="dark"] .trait-chip { color: var(--accent); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .trait-chip { color: var(--accent); } }
 
 .career-toolbar { display: flex; gap: 10px; margin-bottom: 16px; }
 .toolbar-btn {

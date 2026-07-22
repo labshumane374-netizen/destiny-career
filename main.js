@@ -54,6 +54,7 @@ function createNewState(playerName, nationalityId, originId, playstyleId, positi
     pendingInternationalTournament: false,
     pendingSeasonAward: null,
     pendingSeasonRecap: false,
+    pendingContractRenegotiation: false,
     seasonMatchMoments: { successCount: 0, attemptCount: 0 },
     seasonMatchStats: { goals: 0, assists: 0 },
     careerMatchStats: { goals: 0, assists: 0 },
@@ -267,6 +268,8 @@ function renderStatPanel() {
   if (!statPanelOpen) { panel.innerHTML = ''; panel.classList.remove('open'); return; }
   const p = state.player;
   const nationality = NATIONALITIES[p.identity.nationalityId];
+  const origin = ORIGINS[p.identity.originId];
+  const playstyle = PLAYSTYLES[p.identity.playstyleId];
   const rows = TRACKED_STAT_ORDER.map(([key, label]) => {
     const value = Math.round(p.stats[key]);
     return `
@@ -276,9 +279,14 @@ function renderStatPanel() {
         <span class="stat-row-value">${value}</span>
       </div>`;
   }).join('');
+  const traitChips = [
+    origin ? `<span class="trait-chip">${ORIGIN_ICONS[p.identity.originId] || '⚽'} ${origin.label}</span>` : '',
+    playstyle ? `<span class="trait-chip">${PLAYSTYLE_ICONS[p.identity.playstyleId] || '⚽'} ${playstyle.label}</span>` : '',
+  ].join('');
   panel.classList.add('open');
   panel.innerHTML = `
     <div class="stat-panel-inner">
+      <div class="trait-row">${traitChips}</div>
       ${rows}
       <p class="stat-panel-meta">Contrat : ${(p.career.contract.salaryWeekly * 52 / 1000).toFixed(0)}k€/an, ${p.career.contract.yearsLeft} an${p.career.contract.yearsLeft > 1 ? 's' : ''} restant${p.career.contract.yearsLeft > 1 ? 's' : ''} · Nationalité ${nationality ? nationality.label : '—'}</p>
     </div>
