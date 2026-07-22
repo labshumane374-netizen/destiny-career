@@ -304,8 +304,10 @@ body {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
   transition: all 0.12s ease;
+  position: relative;
+  z-index: 2;
 }
 .stat-panel-toggle:hover { color: var(--text); border-color: var(--accent); }
 
@@ -345,7 +347,22 @@ body {
 }
 .toolbar-btn:hover { color: var(--text); border-color: var(--accent); }
 
-.stat-changes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; min-height: 0; }
+.stat-changes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; min-height: 0; position: relative; z-index: 1; }
+#career-event-area {
+  position: relative;
+  z-index: 1;
+  transition: transform 0.14s ease, opacity 0.14s ease;
+}
+#career-event-area.beat-out { transform: translateY(-8px) scale(0.985); opacity: 0; }
+#career-event-area.beat-in { animation: beat-hop 0.26s cubic-bezier(0.3, 1.4, 0.5, 1); }
+@keyframes beat-hop {
+  0% { transform: translateY(10px) scale(0.98); opacity: 0; }
+  60% { transform: translateY(-3px) scale(1.005); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #career-event-area, #career-event-area.beat-out, #career-event-area.beat-in { transition: none; animation: none; transform: none; opacity: 1; }
+}
 .stat-change {
   font-size: 12.5px;
   font-weight: 700;

@@ -147,8 +147,9 @@ function selectCandidateEvents(state, eventPool) {
 // --- Tirage pondéré avec pénalité de récence ---
 function pickWeighted(candidates, state) {
   if (candidates.length === 0) return null;
-  const archetypeId = state.player.identity.archetype;
-  const archetype = ARCHETYPES[archetypeId];
+  const archetype = ARCHETYPES[state.player.identity.archetype];
+  const origin = ORIGINS[state.player.identity.originId];
+  const playstyle = PLAYSTYLES[state.player.identity.playstyleId];
   const recentCounts = {};
   for (const id of state.recentEventIds || []) {
     const def = candidates.find(c => c.eventDef.id === id)?.eventDef;
@@ -157,7 +158,10 @@ function pickWeighted(candidates, state) {
   }
 
   const weighted = candidates.map(c => {
-    const modifier = archetype?.eventWeightModifiers?.[c.eventDef.category] ?? archetype?.eventWeightModifiers?.[c.eventDef.id] ?? 1;
+    const archetypeMod = archetype?.eventWeightModifiers?.[c.eventDef.category] ?? archetype?.eventWeightModifiers?.[c.eventDef.id] ?? 1;
+    const originMod = origin?.eventWeightModifiers?.[c.eventDef.category] ?? 1;
+    const playstyleMod = playstyle?.eventWeightModifiers?.[c.eventDef.category] ?? 1;
+    const modifier = archetypeMod * originMod * playstyleMod;
     const recencyPenalty = 1 + (recentCounts[c.eventDef.category] || 0);
     const weight = (c.eventDef.weight * modifier) / recencyPenalty;
     return { ...c, weight };
@@ -372,7 +376,7 @@ function evaluateTransferMarket(state, allClubs) {
       });
     }
   }
-  return offers.sort((a, b) => b.prestigeDelta - a.prestigeDelta).slice(0, 3);
+  return offers.sort((a, b) => b.prestigeDelta - a.prestigeDelta).slice(0, 1);
 }
 
 function driveClubPrestige(club, state) {
@@ -511,6 +515,11 @@ function advanceBeat(state, eventPool) {
       addFlag(state, 'loan_offer_resolved', null, {});
       return { eventDef: buildLoanOfferEvent(targetClub), resolvedActors: {} };
     }
+  }
+
+  if (state.pendingSeasonRecap) {
+    state.pendingSeasonRecap = false;
+    return { eventDef: buildSeasonRecapEvent(state), resolvedActors: {} };
   }
 
   if (state.pendingContractRenegotiation) {

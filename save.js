@@ -33,6 +33,10 @@ function migrateV2toV3(state) {
   state.pendingContinentalCup = state.pendingContinentalCup || false;
   state.pendingInternationalTournament = state.pendingInternationalTournament || false;
   state.pendingSeasonAward = state.pendingSeasonAward || null;
+  state.pendingSeasonRecap = state.pendingSeasonRecap || false;
+
+  state.player.identity.originId = state.player.identity.originId || 'academy';
+  state.player.identity.playstyleId = state.player.identity.playstyleId || 'workhorse';
 
   state.seasonMatchMoments = state.seasonMatchMoments || { successCount: 0, attemptCount: 0 };
   state.seasonMatchStats = state.seasonMatchStats || { goals: 0, assists: 0 };

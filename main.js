@@ -5,17 +5,25 @@ let currentChosen = null;
 let selectedStartingAge = null;
 let selectedNationalityId = null;
 let selectedPositionId = null;
+let selectedOriginId = null;
+let selectedPlaystyleId = null;
+let enteredPlayerName = 'Toi';
 
-function createNewState(nationalityId, positionId, archetypeId, startingAge) {
+function createNewState(playerName, nationalityId, originId, playstyleId, positionId, archetypeId, startingAge) {
   const ageProfile = STARTING_AGE_PROFILES[startingAge];
   const nationality = NATIONALITIES[nationalityId];
   const position = POSITIONS[positionId];
+  const origin = ORIGINS[originId];
+  const playstyle = PLAYSTYLES[playstyleId];
   const eligibleClubs = CLUBS.filter(c => c.tier >= ageProfile.clubTierRange[0] && c.tier <= ageProfile.clubTierRange[1]);
   const club = pickStartingClubByNationality(eligibleClubs, nationality) || eligibleClubs[Math.floor(Math.random() * eligibleClubs.length)];
 
   const s = {
     player: {
-      identity: { firstName: 'Toi', lastName: '', archetype: archetypeId, nationalityId, position: positionId, birthYear: 2026 - startingAge, startingAge },
+      identity: {
+        firstName: playerName || 'Toi', lastName: '', archetype: archetypeId, nationalityId,
+        originId, playstyleId, position: positionId, birthYear: 2026 - startingAge, startingAge,
+      },
       career: {
         season: 1, age: startingAge, retired: false,
         club: { id: club.id, name: club.name, countryId: club.countryId, tier: club.tier, prestige: club.prestige },
@@ -25,11 +33,11 @@ function createNewState(nationalityId, positionId, archetypeId, startingAge) {
         loan: null,
       },
       stats: {
-        technique: 55 + ageProfile.statBonus.technique + (nationality?.startingBonus.technique || 0) + (position?.startingBonus.technique || 0),
-        physique: 60 + ageProfile.statBonus.physique + (nationality?.startingBonus.physique || 0) + (position?.startingBonus.physique || 0),
-        mental: 50 + ageProfile.statBonus.mental + (nationality?.startingBonus.mental || 0) + (position?.startingBonus.mental || 0),
-        tactique: 45 + ageProfile.statBonus.tactique + (nationality?.startingBonus.tactique || 0) + (position?.startingBonus.tactique || 0),
-        reputation: 10 + ageProfile.statBonus.reputation + (nationality?.startingBonus.reputation || 0),
+        technique: 55 + ageProfile.statBonus.technique + (nationality?.startingBonus.technique || 0) + (position?.startingBonus.technique || 0) + (origin?.startingBonus.technique || 0) + (playstyle?.startingBonus.technique || 0),
+        physique: 60 + ageProfile.statBonus.physique + (nationality?.startingBonus.physique || 0) + (position?.startingBonus.physique || 0) + (origin?.startingBonus.physique || 0) + (playstyle?.startingBonus.physique || 0),
+        mental: 50 + ageProfile.statBonus.mental + (nationality?.startingBonus.mental || 0) + (position?.startingBonus.mental || 0) + (origin?.startingBonus.mental || 0) + (playstyle?.startingBonus.mental || 0),
+        tactique: 45 + ageProfile.statBonus.tactique + (nationality?.startingBonus.tactique || 0) + (position?.startingBonus.tactique || 0) + (origin?.startingBonus.tactique || 0) + (playstyle?.startingBonus.tactique || 0),
+        reputation: 10 + ageProfile.statBonus.reputation + (nationality?.startingBonus.reputation || 0) + (origin?.startingBonus.reputation || 0) + (playstyle?.startingBonus.reputation || 0),
         formOverall: 50 + ageProfile.statBonus.formOverall,
       },
       wallet: { cash: 5000, monthlyExpenses: 400, investments: [], careerEarnings: 0, lastSigningBonus: 0 },
@@ -45,6 +53,7 @@ function createNewState(nationalityId, positionId, archetypeId, startingAge) {
     pendingContinentalCup: false,
     pendingInternationalTournament: false,
     pendingSeasonAward: null,
+    pendingSeasonRecap: false,
     seasonMatchMoments: { successCount: 0, attemptCount: 0 },
     seasonMatchStats: { goals: 0, assists: 0 },
     careerMatchStats: { goals: 0, assists: 0 },
@@ -71,6 +80,23 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 
+function renderNameScreen() {
+  const input = document.getElementById('input-player-name');
+  input.value = '';
+  setTimeout(() => input.focus(), 50);
+}
+
+document.getElementById('btn-name-continue').addEventListener('click', () => {
+  const input = document.getElementById('input-player-name');
+  enteredPlayerName = input.value.trim() || 'Toi';
+  showScreen('screen-nationality');
+  renderNationalityScreen();
+});
+
+document.getElementById('input-player-name').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('btn-name-continue').click();
+});
+
 function renderNationalityScreen() {
   const grid = document.getElementById('nationality-grid');
   grid.innerHTML = '';
@@ -82,6 +108,42 @@ function renderNationalityScreen() {
     card.innerHTML = `<span class="pick-flag">${flag}</span><div class="pick-body"><h3>${nat.label}</h3><p>${nat.federation}</p></div>`;
     card.addEventListener('click', () => {
       selectedNationalityId = id;
+      showScreen('screen-origin');
+      renderOriginScreen();
+    });
+    grid.appendChild(card);
+  }
+}
+
+const ORIGIN_ICONS = { academy: '🏫', pro_family: '👑', working_class: '🏘️', futsal: '🏟️', late_bloomer: '🔥' };
+
+function renderOriginScreen() {
+  const grid = document.getElementById('origin-grid');
+  grid.innerHTML = '';
+  for (const [id, origin] of Object.entries(ORIGINS)) {
+    const card = document.createElement('div');
+    card.className = 'archetype-card pick-card';
+    card.innerHTML = `<span class="pick-flag">${ORIGIN_ICONS[id] || '⚽'}</span><div class="pick-body"><h3>${origin.label}</h3><p>${origin.description}</p></div>`;
+    card.addEventListener('click', () => {
+      selectedOriginId = id;
+      showScreen('screen-playstyle');
+      renderPlaystyleScreen();
+    });
+    grid.appendChild(card);
+  }
+}
+
+const PLAYSTYLE_ICONS = { showman: '🎭', workhorse: '🔧', leader: '🧭', maverick: '🃏', calm: '🧊' };
+
+function renderPlaystyleScreen() {
+  const grid = document.getElementById('playstyle-grid');
+  grid.innerHTML = '';
+  for (const [id, style] of Object.entries(PLAYSTYLES)) {
+    const card = document.createElement('div');
+    card.className = 'archetype-card pick-card';
+    card.innerHTML = `<span class="pick-flag">${PLAYSTYLE_ICONS[id] || '⚽'}</span><div class="pick-body"><h3>${style.label}</h3><p>${style.description}</p></div>`;
+    card.addEventListener('click', () => {
+      selectedPlaystyleId = id;
       showScreen('screen-position');
       renderPositionScreen();
     });
@@ -135,7 +197,7 @@ function renderArchetypeScreen() {
     card.className = 'archetype-card pick-card';
     card.innerHTML = `<span class="pick-flag">${ARCHETYPE_ICONS[id] || '⚽'}</span><div class="pick-body"><h3>${def.label}</h3><p>${archetypeDescription(id)}</p></div>`;
     card.addEventListener('click', () => {
-      state = createNewState(selectedNationalityId, selectedPositionId, id, selectedStartingAge);
+      state = createNewState(enteredPlayerName, selectedNationalityId, selectedOriginId, selectedPlaystyleId, selectedPositionId, id, selectedStartingAge);
       saveGame(state);
       showScreen('screen-career');
       renderCareerBeat();
@@ -228,6 +290,18 @@ function toggleStatPanel() {
   renderStatPanel();
 }
 
+function playBeatTransition(onComplete) {
+  const area = document.getElementById('career-event-area');
+  if (!area) { onComplete(); return; }
+  area.classList.add('beat-out');
+  setTimeout(() => {
+    onComplete();
+    area.classList.remove('beat-out');
+    area.classList.add('beat-in');
+    setTimeout(() => area.classList.remove('beat-in'), 260);
+  }, 140);
+}
+
 function renderCareerBeat() {
   renderCareerHeader();
   renderStatPanel();
@@ -259,8 +333,8 @@ function renderCareerBeat() {
         showScreen('screen-dashboard');
         renderDashboardScreen();
       } else {
-        renderCareerBeat();
         renderStatChanges(changes);
+        playBeatTransition(() => renderCareerBeat());
       }
     });
     list.appendChild(btn);
@@ -320,8 +394,9 @@ function advanceSeasonIfNeeded() {
   if (beatCounter >= BEATS_PER_SEASON) {
     beatCounter = 0;
 
-    // Trophée et événements de compétition évalués sur la saison qui s'achève,
+    // Bilan, trophée et événements de compétition évalués sur la saison qui s'achève,
     // avant d'incrémenter saison/âge.
+    state.pendingSeasonRecap = true;
     if (state.player.stats.reputation >= 25) {
       state.pendingSeasonAward = runSeasonAward(state);
     }
@@ -471,8 +546,8 @@ function renderDebugScreen() {
 
 // --- Bootstrap ---
 document.getElementById('btn-start').addEventListener('click', () => {
-  showScreen('screen-nationality');
-  renderNationalityScreen();
+  showScreen('screen-name');
+  renderNameScreen();
 });
 
 document.getElementById('btn-resume').addEventListener('click', () => {

@@ -22,10 +22,29 @@
     </div>
   </section>
 
+  <section id="screen-name" class="screen">
+    <h2 class="screen-title">Comment t'appelles-tu ?</h2>
+    <p class="screen-sub">Ton nom, celui qu'on entendra un jour dans les stades.</p>
+    <input type="text" id="input-player-name" class="name-input" placeholder="Ton prénom" maxlength="18" autocomplete="off" />
+    <button class="btn btn-primary" id="btn-name-continue" style="display:block; margin-top:18px;">Continuer</button>
+  </section>
+
   <section id="screen-nationality" class="screen">
     <h2 class="screen-title">Choisis ta nationalité</h2>
     <p class="screen-sub">D'où tu viens façonne ton style et peut t'ouvrir la porte de la sélection nationale.</p>
     <div class="archetype-grid" id="nationality-grid"></div>
+  </section>
+
+  <section id="screen-origin" class="screen">
+    <h2 class="screen-title">D'où venez-vous ?</h2>
+    <p class="screen-sub">Ton histoire avant les projecteurs façonne qui tu es devenu.</p>
+    <div class="archetype-grid" id="origin-grid"></div>
+  </section>
+
+  <section id="screen-playstyle" class="screen">
+    <h2 class="screen-title">Quel est ton style ?</h2>
+    <p class="screen-sub">La signature qui te démarque sur et en dehors du terrain.</p>
+    <div class="archetype-grid" id="playstyle-grid"></div>
   </section>
 
   <section id="screen-position" class="screen">
@@ -52,8 +71,10 @@
     <button class="stat-panel-toggle" id="btn-toggle-stats">📋 Voir mes statistiques</button>
     <div class="stat-panel" id="stat-panel"></div>
     <div class="stat-changes" id="stat-changes"></div>
-    <div class="event-card" id="event-card"></div>
-    <div class="choice-list" id="choice-list"></div>
+    <div id="career-event-area">
+      <div class="event-card" id="event-card"></div>
+      <div class="choice-list" id="choice-list"></div>
+    </div>
   </section>
 
   <section id="screen-dashboard" class="screen">
@@ -81,6 +102,8 @@
 <script src="data/clubs.js"></script>
 <script src="data/nationalities.js"></script>
 <script src="data/positions.js"></script>
+<script src="data/origins.js"></script>
+<script src="data/playstyles.js"></script>
 <script src="data/ages.js"></script>
 <script src="data/characters.js"></script>
 <script src="data/events.js"></script>

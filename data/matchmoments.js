@@ -101,8 +101,44 @@ const MATCH_MOMENT_POOL = [
             },
           },
           {
-            id: 'give_penalty', label: 'Le laisser à un coéquipier',
+            id: 'panenka_penalty', label: 'Tenter une panenka audacieuse',
+            successCheck: { stats: [{ stat: 'mental', weight: 0.8 }, { stat: 'technique', weight: 0.2 }], difficulty: 65 },
+            effects: { stats: { reputation: 12, formOverall: 3 } },
+            failureEffects: { stats: { reputation: -8, mental: -5 } },
+            statType: 'goal',
+            resultText: {
+              success: [
+                'Une panenka insolente, le gardien plonge dans le vide !',
+                'Le culot paie, la balle atterrit tranquillement au fond.',
+                'Un geste d\'audace pure qui restera dans les mémoires.',
+              ],
+              failure: [
+                'Le gardien reste debout et capte sans bouger, humiliation totale.',
+                'La panenka manque de précision, le gardien s\'en empare facilement.',
+                'Le geste échoue, les tribunes sifflent la témérité.',
+              ],
+            },
+          },
+          {
+            id: 'give_penalty', label: 'Le laisser à un coéquipier plus expérimenté',
             effects: { stats: { mental: 2 } },
+          },
+          {
+            id: 'delay_penalty', label: 'Prendre ton temps pour déstabiliser le gardien',
+            successCheck: { stats: [{ stat: 'mental', weight: 1 }], difficulty: 45 },
+            effects: { stats: { reputation: 6, mental: 3 } },
+            failureEffects: { stats: { mental: -4 } },
+            statType: 'goal',
+            resultText: {
+              success: [
+                'Le temps mort déstabilise le gardien, qui part du mauvais côté.',
+                'Ta patience paie, le gardien anticipe mal la frappe.',
+              ],
+              failure: [
+                'L\'arbitre s\'impatiente et te presse, la concentration en pâtit.',
+                'Le délai joue contre toi, la frappe manque de précision.',
+              ],
+            },
           },
         ],
       },
