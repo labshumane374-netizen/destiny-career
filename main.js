@@ -75,9 +75,11 @@ function renderNationalityScreen() {
   const grid = document.getElementById('nationality-grid');
   grid.innerHTML = '';
   for (const [id, nat] of Object.entries(NATIONALITIES)) {
+    const country = COUNTRIES[nat.countryId];
+    const flag = country ? country.flag : '🏳️';
     const card = document.createElement('div');
-    card.className = 'archetype-card';
-    card.innerHTML = `<h3>${nat.label}</h3><p>${nat.federation}</p>`;
+    card.className = 'archetype-card pick-card';
+    card.innerHTML = `<span class="pick-flag">${flag}</span><div class="pick-body"><h3>${nat.label}</h3><p>${nat.federation}</p></div>`;
     card.addEventListener('click', () => {
       selectedNationalityId = id;
       showScreen('screen-position');
@@ -87,13 +89,15 @@ function renderNationalityScreen() {
   }
 }
 
+const POSITION_ICONS = { gk: '🧤', def: '🛡️', mid: '🎯', att: '⚡' };
+
 function renderPositionScreen() {
   const grid = document.getElementById('position-grid');
   grid.innerHTML = '';
   for (const [id, pos] of Object.entries(POSITIONS)) {
     const card = document.createElement('div');
-    card.className = 'archetype-card';
-    card.innerHTML = `<h3>${pos.label}</h3><p>${pos.description}</p>`;
+    card.className = 'archetype-card pick-card';
+    card.innerHTML = `<span class="pick-flag">${POSITION_ICONS[id] || '⚽'}</span><div class="pick-body"><h3>${pos.label}</h3><p>${pos.description}</p></div>`;
     card.addEventListener('click', () => {
       selectedPositionId = id;
       showScreen('screen-age');
@@ -109,9 +113,9 @@ function renderAgeScreen() {
   for (const [ageStr, profile] of Object.entries(STARTING_AGE_PROFILES)) {
     const age = Number(ageStr);
     const card = document.createElement('div');
-    card.className = 'archetype-card';
+    card.className = 'archetype-card pick-card';
     const seasons = estimateSeasonsRemaining(age);
-    card.innerHTML = `<h3>${profile.label}</h3><p>${profile.description}</p><p class="age-seasons">~${seasons} saisons de carrière possibles</p>`;
+    card.innerHTML = `<span class="pick-flag age-badge">${age}</span><div class="pick-body"><h3>${profile.label}</h3><p>${profile.description}</p><p class="age-seasons">~${seasons} saisons de carrière possibles</p></div>`;
     card.addEventListener('click', () => {
       selectedStartingAge = age;
       showScreen('screen-archetype');
@@ -121,13 +125,15 @@ function renderAgeScreen() {
   }
 }
 
+const ARCHETYPE_ICONS = { prodige_precoce: '🌟', joueur_ombre: '🌒', mercenaire: '💼' };
+
 function renderArchetypeScreen() {
   const grid = document.getElementById('archetype-grid');
   grid.innerHTML = '';
   for (const [id, def] of Object.entries(ARCHETYPES)) {
     const card = document.createElement('div');
-    card.className = 'archetype-card';
-    card.innerHTML = `<h3>${def.label}</h3><p>${archetypeDescription(id)}</p>`;
+    card.className = 'archetype-card pick-card';
+    card.innerHTML = `<span class="pick-flag">${ARCHETYPE_ICONS[id] || '⚽'}</span><div class="pick-body"><h3>${def.label}</h3><p>${archetypeDescription(id)}</p></div>`;
     card.addEventListener('click', () => {
       state = createNewState(selectedNationalityId, selectedPositionId, id, selectedStartingAge);
       saveGame(state);
@@ -148,17 +154,83 @@ function archetypeDescription(id) {
 function renderCareerHeader() {
   const header = document.getElementById('career-header');
   const p = state.player;
-  const division = findClubDivisionLabel(p.career.club);
-  const countryLabel = COUNTRIES[p.career.club.countryId]?.label || '';
+  const nationality = NATIONALITIES[p.identity.nationalityId];
+  const country = COUNTRIES[p.career.club.countryId];
+  const natCountry = nationality ? COUNTRIES[nationality.countryId] : null;
+  const currentYear = p.identity.birthYear + p.career.age;
   header.innerHTML = `
-    <span>Saison <strong>${p.career.season}</strong> — ${p.career.age} ans</span>
-    <span><strong>${p.career.club.name}</strong> — ${division}, ${countryLabel}</span>
-    <span>Rép. <strong>${p.stats.reputation}</strong></span>
+    <span>${natCountry ? natCountry.flag : '🏳️'} <strong>${p.identity.firstName}</strong> ${p.career.age} ans · ${currentYear}</span>
+    <span><span class="tier-badge tier-${p.career.club.tier}">D${p.career.club.tier}</span><strong>${p.career.club.name}</strong> ${country ? country.flag : ''}</span>
   `;
+
+  renderCareerStatsRow();
+  renderGauges();
+}
+
+function renderCareerStatsRow() {
+  const row = document.getElementById('career-stats-row');
+  const p = state.player;
+  const stars = Math.max(1, Math.min(5, Math.round(p.stats.reputation / 20)));
+  row.innerHTML = `
+    <div class="career-stat-pill"><div class="csp-value">⚡ ${Math.round(p.stats.formOverall)}</div><div class="csp-label">Forme</div></div>
+    <div class="career-stat-pill"><div class="csp-value">${Math.round(p.wallet.cash / 1000)}k€</div><div class="csp-label">Cash</div></div>
+    <div class="career-stat-pill"><div class="csp-value">${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}</div><div class="csp-label">Potentiel</div></div>
+  `;
+}
+
+function renderGauges() {
+  const row = document.getElementById('gauge-row');
+  const p = state.player;
+  row.innerHTML = `
+    <div class="gauge">
+      <div class="gauge-label"><span>Forme</span><span>${Math.round(p.stats.formOverall)}</span></div>
+      <div class="gauge-track"><div class="gauge-fill gauge-form" style="width:${Math.max(0, Math.min(100, p.stats.formOverall))}%"></div></div>
+    </div>
+    <div class="gauge">
+      <div class="gauge-label"><span>Temps de jeu</span><span>${Math.round(p.career.playingTime)}</span></div>
+      <div class="gauge-track"><div class="gauge-fill gauge-playtime" style="width:${Math.max(0, Math.min(100, p.career.playingTime))}%"></div></div>
+    </div>
+  `;
+}
+
+let statPanelOpen = false;
+
+const TRACKED_STAT_ORDER = [
+  ['technique', 'Technique'], ['physique', 'Physique'], ['mental', 'Mental'],
+  ['tactique', 'Tactique'], ['reputation', 'Réputation'],
+];
+
+function renderStatPanel() {
+  const panel = document.getElementById('stat-panel');
+  if (!statPanelOpen) { panel.innerHTML = ''; panel.classList.remove('open'); return; }
+  const p = state.player;
+  const nationality = NATIONALITIES[p.identity.nationalityId];
+  const rows = TRACKED_STAT_ORDER.map(([key, label]) => {
+    const value = Math.round(p.stats[key]);
+    return `
+      <div class="stat-row">
+        <span class="stat-row-label">${label}</span>
+        <div class="stat-row-track"><div class="stat-row-fill" style="width:${Math.max(0, Math.min(100, value))}%"></div></div>
+        <span class="stat-row-value">${value}</span>
+      </div>`;
+  }).join('');
+  panel.classList.add('open');
+  panel.innerHTML = `
+    <div class="stat-panel-inner">
+      ${rows}
+      <p class="stat-panel-meta">Contrat : ${(p.career.contract.salaryWeekly * 52 / 1000).toFixed(0)}k€/an, ${p.career.contract.yearsLeft} an${p.career.contract.yearsLeft > 1 ? 's' : ''} restant${p.career.contract.yearsLeft > 1 ? 's' : ''} · Nationalité ${nationality ? nationality.label : '—'}</p>
+    </div>
+  `;
+}
+
+function toggleStatPanel() {
+  statPanelOpen = !statPanelOpen;
+  renderStatPanel();
 }
 
 function renderCareerBeat() {
   renderCareerHeader();
+  renderStatPanel();
   currentChosen = advanceBeat(state, EVENTS);
   const { eventDef, resolvedActors } = currentChosen;
 
@@ -178,7 +250,9 @@ function renderCareerBeat() {
     btn.className = 'choice-btn';
     btn.textContent = choice.label;
     btn.addEventListener('click', () => {
+      const before = snapshotTrackedValues(state);
       commitChoice(state, currentChosen, choice.id);
+      const changes = diffTrackedValues(before, snapshotTrackedValues(state));
       advanceSeasonIfNeeded();
       saveGame(state);
       if (state.player.career.retired) {
@@ -186,10 +260,49 @@ function renderCareerBeat() {
         renderDashboardScreen();
       } else {
         renderCareerBeat();
+        renderStatChanges(changes);
       }
     });
     list.appendChild(btn);
   }
+}
+
+const TRACKED_STAT_LABELS = {
+  technique: 'Technique', physique: 'Physique', mental: 'Mental', tactique: 'Tactique',
+  reputation: 'Réputation', formOverall: 'Forme',
+};
+
+function snapshotTrackedValues(state) {
+  return {
+    stats: { ...state.player.stats },
+    cash: state.player.wallet.cash,
+    playingTime: state.player.career.playingTime,
+  };
+}
+
+function diffTrackedValues(before, after) {
+  const changes = [];
+  for (const [stat, label] of Object.entries(TRACKED_STAT_LABELS)) {
+    const delta = Math.round((after.stats[stat] - before.stats[stat]) * 10) / 10;
+    if (Math.abs(delta) >= 0.1) changes.push({ label, delta });
+  }
+  const cashDelta = Math.round(after.cash - before.cash);
+  if (cashDelta !== 0) changes.push({ label: 'Argent', delta: cashDelta, isMoney: true });
+  const playTimeDelta = Math.round(after.playingTime - before.playingTime);
+  if (playTimeDelta !== 0) changes.push({ label: 'Temps de jeu', delta: playTimeDelta });
+  return changes;
+}
+
+function renderStatChanges(changes) {
+  const container = document.getElementById('stat-changes');
+  if (!container) return;
+  if (!changes.length) { container.innerHTML = ''; return; }
+  container.innerHTML = changes.map(c => {
+    const sign = c.delta > 0 ? '+' : '';
+    const cls = c.delta > 0 ? 'stat-up' : 'stat-down';
+    const value = c.isMoney ? `${sign}${c.delta}€` : `${sign}${c.delta}`;
+    return `<span class="stat-change ${cls}">${c.label} ${value}</span>`;
+  }).join('');
 }
 
 const BEATS_PER_SEASON = 5;
@@ -378,16 +491,14 @@ document.getElementById('btn-dashboard').addEventListener('click', () => {
   renderDashboardScreen();
 });
 
-document.getElementById('btn-dashboard-ingame').addEventListener('click', () => {
-  if (!state) return;
-  dashboardReturnScreen = 'screen-career';
-  showScreen('screen-dashboard');
-  renderDashboardScreen();
-});
-
 document.getElementById('btn-dashboard-back').addEventListener('click', () => {
   showScreen(dashboardReturnScreen);
   if (dashboardReturnScreen === 'screen-career') renderCareerHeader();
+});
+
+document.getElementById('btn-toggle-stats').addEventListener('click', () => {
+  if (!state) return;
+  toggleStatPanel();
 });
 
 document.getElementById('btn-journal').addEventListener('click', () => {
