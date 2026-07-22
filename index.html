@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ma Légende — Carrière de footballeur</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+
+  <section id="screen-home" class="screen active">
+    <div class="home-wrap">
+      <h1 class="title">Ma Légende</h1>
+      <p class="tagline">De 16 ans à la retraite, écris ta carrière de footballeur. Chaque choix compte, et rien n'est oublié.</p>
+      <button class="btn btn-primary" id="btn-resume" style="display:none">Reprendre ma carrière</button>
+      <button class="btn btn-primary" id="btn-start">Commencer une nouvelle carrière</button>
+      <div class="home-links">
+        <button class="btn-link" id="btn-dashboard">📊 Tableau de bord</button>
+        <button class="btn-link" id="btn-journal">📖 Journal</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="screen-nationality" class="screen">
+    <h2 class="screen-title">Choisis ta nationalité</h2>
+    <p class="screen-sub">D'où tu viens façonne ton style et peut t'ouvrir la porte de la sélection nationale.</p>
+    <div class="archetype-grid" id="nationality-grid"></div>
+  </section>
+
+  <section id="screen-position" class="screen">
+    <h2 class="screen-title">Choisis ton poste</h2>
+    <p class="screen-sub">Le rôle que tu tiens sur le terrain façonne tes forces et tes choix futurs.</p>
+    <div class="archetype-grid" id="position-grid"></div>
+  </section>
+
+  <section id="screen-age" class="screen">
+    <h2 class="screen-title">Choisis ton âge de départ</h2>
+    <p class="screen-sub">Plus tôt, plus de saisons mais moins d'expérience. Plus tard, un profil plus mature mais une carrière plus courte.</p>
+    <div class="archetype-grid" id="age-grid"></div>
+  </section>
+
+  <section id="screen-archetype" class="screen">
+    <h2 class="screen-title">Choisis ton profil</h2>
+    <div class="archetype-grid" id="archetype-grid"></div>
+  </section>
+
+  <section id="screen-career" class="screen">
+    <div class="career-header" id="career-header"></div>
+    <button class="btn-link" id="btn-dashboard-ingame">📊 Stats</button>
+    <div class="event-card" id="event-card"></div>
+    <div class="choice-list" id="choice-list"></div>
+  </section>
+
+  <section id="screen-dashboard" class="screen">
+    <h2 class="screen-title">Tableau de bord</h2>
+    <div class="dashboard-body" id="dashboard-body"></div>
+    <button class="btn btn-secondary" id="btn-dashboard-back">Retour</button>
+  </section>
+
+  <section id="screen-journal" class="screen">
+    <h2 class="screen-title">Journal de carrière</h2>
+    <div class="journal-body" id="journal-body"></div>
+    <button class="btn btn-secondary" id="btn-journal-back">Retour</button>
+  </section>
+
+  <section id="screen-debug" class="screen">
+    <h2 class="screen-title">Debug — Diagnostic du pool d'événements</h2>
+    <p class="screen-sub" id="debug-summary"></p>
+    <div class="debug-body" id="debug-body"></div>
+    <button class="btn btn-secondary" id="btn-debug-back">Retour</button>
+  </section>
+
+</div>
+
+<script src="save.js"></script>
+<script src="data/clubs.js"></script>
+<script src="data/nationalities.js"></script>
+<script src="data/positions.js"></script>
+<script src="data/ages.js"></script>
+<script src="data/characters.js"></script>
+<script src="data/events.js"></script>
+<script src="data/content.js"></script>
+<script src="data/competitions.js"></script>
+<script src="data/award.js"></script>
+<script src="data/matchmoments.js"></script>
+<script src="engine.js"></script>
+<script src="narrative.js"></script>
+<script src="dashboard.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

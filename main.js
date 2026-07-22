@@ -1,0 +1,422 @@
+// === MAIN: bootstrap, écoute UI, boucle de jeu ===
+
+let state = null;
+let currentChosen = null;
+let selectedStartingAge = null;
+let selectedNationalityId = null;
+let selectedPositionId = null;
+
+function createNewState(nationalityId, positionId, archetypeId, startingAge) {
+  const ageProfile = STARTING_AGE_PROFILES[startingAge];
+  const nationality = NATIONALITIES[nationalityId];
+  const position = POSITIONS[positionId];
+  const eligibleClubs = CLUBS.filter(c => c.tier >= ageProfile.clubTierRange[0] && c.tier <= ageProfile.clubTierRange[1]);
+  const club = pickStartingClubByNationality(eligibleClubs, nationality) || eligibleClubs[Math.floor(Math.random() * eligibleClubs.length)];
+
+  const s = {
+    player: {
+      identity: { firstName: 'Toi', lastName: '', archetype: archetypeId, nationalityId, position: positionId, birthYear: 2026 - startingAge, startingAge },
+      career: {
+        season: 1, age: startingAge, retired: false,
+        club: { id: club.id, name: club.name, countryId: club.countryId, tier: club.tier, prestige: club.prestige },
+        contract: { yearsLeft: ageProfile.contractYears, salaryWeekly: 400 + club.prestige * 15, releaseClause: null, expiresSeason: ageProfile.contractYears },
+        history: [],
+        playingTime: 50,
+        loan: null,
+      },
+      stats: {
+        technique: 55 + ageProfile.statBonus.technique + (nationality?.startingBonus.technique || 0) + (position?.startingBonus.technique || 0),
+        physique: 60 + ageProfile.statBonus.physique + (nationality?.startingBonus.physique || 0) + (position?.startingBonus.physique || 0),
+        mental: 50 + ageProfile.statBonus.mental + (nationality?.startingBonus.mental || 0) + (position?.startingBonus.mental || 0),
+        tactique: 45 + ageProfile.statBonus.tactique + (nationality?.startingBonus.tactique || 0) + (position?.startingBonus.tactique || 0),
+        reputation: 10 + ageProfile.statBonus.reputation + (nationality?.startingBonus.reputation || 0),
+        formOverall: 50 + ageProfile.statBonus.formOverall,
+      },
+      wallet: { cash: 5000, monthlyExpenses: 400, investments: [], careerEarnings: 0, lastSigningBonus: 0 },
+      body: { fatigue: 20, injuryRisk: 10, currentInjury: null },
+    },
+    characters: {},
+    flags: [],
+    flagsCount: 0,
+    _flagIndex: {},
+    _flagsByCharacter: {},
+    scheduledFlags: [],
+    pendingTransferOffers: [],
+    pendingContinentalCup: false,
+    pendingInternationalTournament: false,
+    pendingSeasonAward: null,
+    seasonMatchMoments: { successCount: 0, attemptCount: 0 },
+    seasonMatchStats: { goals: 0, assists: 0 },
+    careerMatchStats: { goals: 0, assists: 0 },
+    eventLog: {},
+    recentEventIds: [],
+    storyLog: [],
+    yearlySnapshots: [],
+  };
+
+  const archetype = ARCHETYPES[archetypeId];
+  if (archetype?.startingBonus) {
+    for (const [stat, bonus] of Object.entries(archetype.startingBonus)) {
+      s.player.stats[stat] = Math.min(100, s.player.stats[stat] + bonus);
+    }
+  }
+
+  initialCast(s);
+  takeYearlySnapshot(s);
+  return s;
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function renderNationalityScreen() {
+  const grid = document.getElementById('nationality-grid');
+  grid.innerHTML = '';
+  for (const [id, nat] of Object.entries(NATIONALITIES)) {
+    const card = document.createElement('div');
+    card.className = 'archetype-card';
+    card.innerHTML = `<h3>${nat.label}</h3><p>${nat.federation}</p>`;
+    card.addEventListener('click', () => {
+      selectedNationalityId = id;
+      showScreen('screen-position');
+      renderPositionScreen();
+    });
+    grid.appendChild(card);
+  }
+}
+
+function renderPositionScreen() {
+  const grid = document.getElementById('position-grid');
+  grid.innerHTML = '';
+  for (const [id, pos] of Object.entries(POSITIONS)) {
+    const card = document.createElement('div');
+    card.className = 'archetype-card';
+    card.innerHTML = `<h3>${pos.label}</h3><p>${pos.description}</p>`;
+    card.addEventListener('click', () => {
+      selectedPositionId = id;
+      showScreen('screen-age');
+      renderAgeScreen();
+    });
+    grid.appendChild(card);
+  }
+}
+
+function renderAgeScreen() {
+  const grid = document.getElementById('age-grid');
+  grid.innerHTML = '';
+  for (const [ageStr, profile] of Object.entries(STARTING_AGE_PROFILES)) {
+    const age = Number(ageStr);
+    const card = document.createElement('div');
+    card.className = 'archetype-card';
+    const seasons = estimateSeasonsRemaining(age);
+    card.innerHTML = `<h3>${profile.label}</h3><p>${profile.description}</p><p class="age-seasons">~${seasons} saisons de carrière possibles</p>`;
+    card.addEventListener('click', () => {
+      selectedStartingAge = age;
+      showScreen('screen-archetype');
+      renderArchetypeScreen();
+    });
+    grid.appendChild(card);
+  }
+}
+
+function renderArchetypeScreen() {
+  const grid = document.getElementById('archetype-grid');
+  grid.innerHTML = '';
+  for (const [id, def] of Object.entries(ARCHETYPES)) {
+    const card = document.createElement('div');
+    card.className = 'archetype-card';
+    card.innerHTML = `<h3>${def.label}</h3><p>${archetypeDescription(id)}</p>`;
+    card.addEventListener('click', () => {
+      state = createNewState(selectedNationalityId, selectedPositionId, id, selectedStartingAge);
+      saveGame(state);
+      showScreen('screen-career');
+      renderCareerBeat();
+    });
+    grid.appendChild(card);
+  }
+}
+
+function archetypeDescription(id) {
+  if (id === 'prodige_precoce') return "Tu perces tôt, sous les projecteurs. La pression et les jalousies suivront vite.";
+  if (id === 'joueur_ombre') return "Personne ne t'attend. Il faudra du temps et de la patience avant de percer.";
+  if (id === 'mercenaire') return "Peu attaché à un club, tu suis les meilleures offres, quitte à te faire des ennemis.";
+  return '';
+}
+
+function renderCareerHeader() {
+  const header = document.getElementById('career-header');
+  const p = state.player;
+  const division = findClubDivisionLabel(p.career.club);
+  const countryLabel = COUNTRIES[p.career.club.countryId]?.label || '';
+  header.innerHTML = `
+    <span>Saison <strong>${p.career.season}</strong> — ${p.career.age} ans</span>
+    <span><strong>${p.career.club.name}</strong> — ${division}, ${countryLabel}</span>
+    <span>Rép. <strong>${p.stats.reputation}</strong></span>
+  `;
+}
+
+function renderCareerBeat() {
+  renderCareerHeader();
+  currentChosen = advanceBeat(state, EVENTS);
+  const { eventDef, resolvedActors } = currentChosen;
+
+  const ctx = { season: state.player.career.season };
+  for (const [key, charId] of Object.entries(resolvedActors)) {
+    const c = state.characters[charId];
+    ctx[key] = { name: c ? c.name : 'quelqu\'un' };
+  }
+
+  const card = document.getElementById('event-card');
+  card.innerHTML = `<h3>${eventDef.text.title}</h3><p>${fillTemplate(eventDef.text.body, ctx)}</p>`;
+
+  const list = document.getElementById('choice-list');
+  list.innerHTML = '';
+  for (const choice of eventDef.choices) {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = choice.label;
+    btn.addEventListener('click', () => {
+      commitChoice(state, currentChosen, choice.id);
+      advanceSeasonIfNeeded();
+      saveGame(state);
+      if (state.player.career.retired) {
+        showScreen('screen-dashboard');
+        renderDashboardScreen();
+      } else {
+        renderCareerBeat();
+      }
+    });
+    list.appendChild(btn);
+  }
+}
+
+const BEATS_PER_SEASON = 5;
+let beatCounter = 0;
+
+function updatePlayingTime(state) {
+  const rival = findActiveRivalPoste(state);
+  const rivalForm = rival ? rival.formLevel : 50;
+  const delta = (state.player.stats.formOverall - rivalForm) * 0.3;
+  state.player.career.playingTime = Math.max(5, Math.min(100, state.player.career.playingTime + delta * 0.2));
+}
+
+function advanceSeasonIfNeeded() {
+  beatCounter++;
+  if (beatCounter >= BEATS_PER_SEASON) {
+    beatCounter = 0;
+
+    // Trophée et événements de compétition évalués sur la saison qui s'achève,
+    // avant d'incrémenter saison/âge.
+    if (state.player.stats.reputation >= 25) {
+      state.pendingSeasonAward = runSeasonAward(state);
+    }
+    if (isClubEligibleForContinentalCup(state.player.career.club) && evaluateContinentalCupQualification(state)) {
+      state.pendingContinentalCup = true;
+    }
+    if (state.player.career.season % INTERNATIONAL_TOURNAMENT.frequencySeasons === 0 && state.player.stats.reputation >= 35) {
+      state.pendingInternationalTournament = true;
+    }
+    if (state.player.career.contract.yearsLeft <= 1) {
+      state.pendingContractRenegotiation = true;
+    } else if (computeSeasonPerformanceScore(state) >= 70) {
+      state.pendingContractRenegotiation = true;
+    }
+
+    state.player.career.season++;
+    state.player.career.age++;
+    state.player.career.contract.yearsLeft = Math.max(0, state.player.career.contract.yearsLeft - 1);
+    takeYearlySnapshot(state);
+    resetSeasonMatchMoments(state);
+
+    const grossIncome = state.player.career.contract.salaryWeekly * 52;
+    const yearlyExpenses = state.player.wallet.monthlyExpenses * 12;
+    state.player.wallet.cash += grossIncome - yearlyExpenses;
+    state.player.wallet.careerEarnings += grossIncome;
+
+    for (const club of CLUBS) driveClubPrestige(club, state);
+
+    if (state.player.career.loan && (state.player.career.season - state.player.career.loan.startSeason) >= state.player.career.loan.durationSeasons) {
+      state.player.career.history.push({ ...state.player.career.club, endSeason: state.player.career.season });
+      state.player.career.club = state.player.career.loan.parentClubSnapshot;
+      state.player.career.loan = null;
+    }
+
+    const offers = evaluateTransferMarket(state, CLUBS);
+    if (offers.length) state.pendingTransferOffers.push(...offers);
+
+    driveRivalPosteForm(state);
+    updatePlayingTime(state);
+
+    if (state.player.career.age >= RETIREMENT_AGE) {
+      state.player.career.retired = true;
+    }
+  }
+}
+
+function renderDashboardScreen() {
+  const body = document.getElementById('dashboard-body');
+  const data = renderDashboard(state);
+  body.innerHTML = `
+    <div class="dash-section">
+      <h4>Chiffres clés</h4>
+      <div class="figure-grid">
+        <div class="figure"><div class="value">${data.keyFigures.seasonsPlayed}</div><div class="label">Saisons jouées</div></div>
+        <div class="figure"><div class="value">${data.keyFigures.clubsPlayed}</div><div class="label">Clubs traversés</div></div>
+        <div class="figure"><div class="value">${data.keyFigures.cash}€</div><div class="label">Fortune</div></div>
+        <div class="figure"><div class="value">${data.keyFigures.reputation}</div><div class="label">Réputation</div></div>
+      </div>
+    </div>
+    <div class="dash-section">
+      <h4>Relations marquantes</h4>
+      ${data.relations.map(r => `
+        <div class="relation-row">
+          <span>${r.name} ${r.active ? '' : '(parti)'}</span>
+          <span class="relation-bars"><span class="bar-trust">Confiance ${r.trust}</span><span class="bar-grudge">Rancune ${r.grudge}</span></span>
+        </div>
+      `).join('') || '<p class="journal-empty">Aucune relation marquante pour l\'instant.</p>'}
+    </div>
+    <div class="dash-section">
+      <h4>Badges</h4>
+      ${data.badges.map(b => `<span class="badge-chip">${b}</span>`).join('') || '<p class="journal-empty">Aucun badge débloqué pour l\'instant.</p>'}
+    </div>
+  `;
+}
+
+function renderJournalScreen() {
+  const body = document.getElementById('journal-body');
+  const entries = renderStoryLog(state, EVENTS);
+  body.innerHTML = entries.length
+    ? entries.map(e => `<div class="journal-entry">${e.text}</div>`).join('')
+    : '<p class="journal-empty">Ton journal est encore vierge.</p>';
+}
+
+// --- Mode debug (?debug=1) : simule N carrières aléatoires pour repérer le contenu mort ---
+function simulateCareerForDebug(archetypeId, beatsCount) {
+  const s = createNewState(archetypeId);
+  const seen = {};
+  let localBeatCounter = 0;
+  for (let beat = 0; beat < beatsCount; beat++) {
+    const chosen = advanceBeat(s, EVENTS);
+    seen[chosen.eventDef.id] = (seen[chosen.eventDef.id] || 0) + 1;
+    const choice = chosen.eventDef.choices[Math.floor(Math.random() * chosen.eventDef.choices.length)];
+    commitChoice(s, chosen, choice.id);
+    localBeatCounter++;
+    if (localBeatCounter >= BEATS_PER_SEASON) {
+      localBeatCounter = 0;
+      s.player.career.season++;
+      s.player.career.age++;
+      s.player.career.contract.yearsLeft = Math.max(0, s.player.career.contract.yearsLeft - 1);
+      takeYearlySnapshot(s);
+    }
+  }
+  return seen;
+}
+
+function runDebugDiagnostic(runsCount = 40, beatsPerRun = 95) {
+  const globalSeen = {};
+  const archetypes = Object.keys(ARCHETYPES);
+  for (let i = 0; i < runsCount; i++) {
+    const archetypeId = archetypes[i % archetypes.length];
+    const seen = simulateCareerForDebug(archetypeId, beatsPerRun);
+    for (const [id, count] of Object.entries(seen)) {
+      globalSeen[id] = (globalSeen[id] || 0) + count;
+    }
+  }
+  return globalSeen;
+}
+
+function renderDebugScreen() {
+  const summary = document.getElementById('debug-summary');
+  const body = document.getElementById('debug-body');
+  summary.textContent = 'Simulation en cours...';
+  body.innerHTML = '';
+
+  setTimeout(() => {
+    const runsCount = 40;
+    const globalSeen = runDebugDiagnostic(runsCount, 95);
+    const rows = EVENTS.map(e => ({ id: e.id, category: e.category, count: globalSeen[e.id] || 0 }));
+    const dead = rows.filter(r => r.count === 0).length;
+    const rare = rows.filter(r => r.count > 0 && r.count <= 2).length;
+
+    summary.textContent = `${runsCount} carrières simulées (choix aléatoires) — ${EVENTS.length} événements dans le pool — ${dead} jamais déclenchés, ${rare} rares (≤2 fois).`;
+
+    body.innerHTML = rows
+      .sort((a, b) => a.count - b.count)
+      .map(r => {
+        const rowClass = r.count === 0 ? 'debug-dead' : (r.count <= 2 ? 'debug-rare' : '');
+        const countClass = r.count === 0 ? 'debug-zero' : (r.count <= 2 ? 'debug-low' : 'debug-ok');
+        return `<div class="debug-row ${rowClass}">
+          <span class="debug-id">${r.id} <em>(${r.category})</em></span>
+          <span class="debug-count ${countClass}">${r.count}</span>
+        </div>`;
+      })
+      .join('');
+  }, 30);
+}
+
+// --- Bootstrap ---
+document.getElementById('btn-start').addEventListener('click', () => {
+  showScreen('screen-nationality');
+  renderNationalityScreen();
+});
+
+document.getElementById('btn-resume').addEventListener('click', () => {
+  if (state) {
+    showScreen('screen-career');
+    renderCareerBeat();
+  }
+});
+
+let dashboardReturnScreen = 'screen-home';
+
+document.getElementById('btn-dashboard').addEventListener('click', () => {
+  if (!state) return;
+  dashboardReturnScreen = 'screen-home';
+  showScreen('screen-dashboard');
+  renderDashboardScreen();
+});
+
+document.getElementById('btn-dashboard-ingame').addEventListener('click', () => {
+  if (!state) return;
+  dashboardReturnScreen = 'screen-career';
+  showScreen('screen-dashboard');
+  renderDashboardScreen();
+});
+
+document.getElementById('btn-dashboard-back').addEventListener('click', () => {
+  showScreen(dashboardReturnScreen);
+  if (dashboardReturnScreen === 'screen-career') renderCareerHeader();
+});
+
+document.getElementById('btn-journal').addEventListener('click', () => {
+  if (!state) return;
+  showScreen('screen-journal');
+  renderJournalScreen();
+});
+document.getElementById('btn-journal-back').addEventListener('click', () => showScreen('screen-home'));
+
+document.getElementById('btn-debug-back').addEventListener('click', () => showScreen('screen-home'));
+
+(function init() {
+  const loaded = loadGame();
+  if (loaded) {
+    state = loaded;
+    rebuildIndexes(state);
+    document.getElementById('btn-resume').style.display = 'inline-block';
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('debug') === '1') {
+    const debugBtn = document.createElement('button');
+    debugBtn.className = 'btn-link';
+    debugBtn.id = 'btn-debug';
+    debugBtn.textContent = '🛠️ Debug';
+    debugBtn.addEventListener('click', () => {
+      showScreen('screen-debug');
+      renderDebugScreen();
+    });
+    document.querySelector('.home-links').appendChild(debugBtn);
+  }
+})();
